@@ -30,6 +30,7 @@ endif()
 set(CMAKE_MODULE_PATH   ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 set(ROYALE_ROOT "/opt/royale" CACHE STRING "Root directory to Royale SDK")
+
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   nodelet
