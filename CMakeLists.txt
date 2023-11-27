@@ -29,6 +29,7 @@ endif()
 
 set(CMAKE_MODULE_PATH   ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
+set(ROYALE_ROOT "/opt/royale" CACHE STRING "Root directory to Royale SDK")
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   nodelet
@@ -40,7 +41,15 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(royale REQUIRED)
+# find_package(royale REQUIRED)
+
+find_package(royale REQUIRED
+  PATHS ${ROYALE_ROOT}/share
+  )
+
+MESSAGE(STATUS "ROYALE_ROOT: " ${ROYALE_ROOT})
+MESSAGE(STATUS "royale_LIB_DIR: " ${royale_LIB_DIR})
+MESSAGE(STATUS "royale_LIBS: " ${royale_LIBS})
 
 # combine cmake_cxx_flags and additional_cxx_flags
 # plus change the space-separated string, into a list delimited by semicolons
@@ -81,12 +90,12 @@ catkin_package(
 ###########
 
 # Display additional files in qtcreator
-execute_process(COMMAND find -L ${PROJECT_SOURCE_DIR} -type f ! -path "${PROJECT_SOURCE_DIR}/royale/*" OUTPUT_VARIABLE FILES_STRING)
-string(REPLACE "\n" ";" FILES_LIST ${FILES_STRING})
-add_custom_target(additional_files_${PROJECT_NAME}
-  SOURCES
-  ${FILES_LIST}
-)
+# execute_process(COMMAND find -L ${PROJECT_SOURCE_DIR} -type f ! -path "${PROJECT_SOURCE_DIR}/royale/*" OUTPUT_VARIABLE FILES_STRING)
+# string(REPLACE "\n" ";" FILES_LIST ${FILES_STRING})
+# add_custom_target(additional_files_${PROJECT_NAME}
+#   SOURCES
+#   ${FILES_LIST}
+# )
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
