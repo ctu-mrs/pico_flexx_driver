@@ -3,13 +3,14 @@ project(pico_flexx_driver)
 
 set(additional_cxx_flags "-DBT_USE_DOUBLE_PRECISION")
 
-find_package(royale 4 REQUIRED
-  PATHS ${PROJECT_SOURCE_DIR}/../libroyale-4.24.0.1201-LINUX-x86-64Bit/share
+find_package(royale 5 REQUIRED
+  PATHS ${PROJECT_SOURCE_DIR}/libroyale-5.9.0.2568-LINUX-x86-64Bit/lib/cmake
 )
-add_definitions(-DSDK_MAJOR_VERSION=4)
-link_directories (${royale_LIB_DIR})
-set(royale_sdk_include_dirs ${royale_INCLUDE_DIRS})
-set(royale_sdk_libraries ${royale_LIBRARIES})
+
+add_definitions(-DSDK_MAJOR_VERSION=5)
+
+set(royale_sdk_include_dirs royale::royale)
+set(royale_sdk_libraries royale::royale)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -21,7 +22,11 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
 )
 
+# combine cmake_cxx_flags and additional_cxx_flags
+# plus change the space-separated string, into a list delimited by semicolons
+# cxx_flags will be used with target_compile_options (cleaner than changing CMAKE_CXX_FLAGS) 
 string(REPLACE " " ";" cxx_flags "${CMAKE_CXX_FLAGS} ${additional_cxx_flags}")
+
 
 # debugging output
 MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
@@ -61,6 +66,7 @@ target_link_libraries(pico_flexx_nodelet
   ${catkin_LIBRARIES}
   ${royale_sdk_libraries}
 )
+
 add_dependencies(pico_flexx_nodelet ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_compile_options(pico_flexx_nodelet PUBLIC ${cxx_flags})
 target_compile_definitions(pico_flexx_nodelet PUBLIC royale_VERSION_MAJOR=${royale_VERSION_MAJOR} royale_VERSION_MINOR=${royale_VERSION_MINOR})
@@ -73,4 +79,3 @@ target_link_libraries(pico_flexx_driver
 add_dependencies(pico_flexx_driver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_compile_options(pico_flexx_driver PUBLIC ${cxx_flags})
 target_compile_definitions(pico_flexx_driver PUBLIC royale_VERSION_MAJOR=${royale_VERSION_MAJOR} royale_VERSION_MINOR=${royale_VERSION_MINOR})
-
