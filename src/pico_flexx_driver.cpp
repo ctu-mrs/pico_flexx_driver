@@ -39,7 +39,7 @@
 #include <royale.hpp>
 
 #include <dynamic_reconfigure/server.h>
-#include <pico_flexx_driver/pico_flexx_driverConfig.h>
+#include <pico_flexx_msgs/pico_flexx_driverConfig.h>
 
 #define PF_DEFAULT_NS       "pico_flexx"
 #define PF_TF_OPT_FRAME     "_optical_frame"

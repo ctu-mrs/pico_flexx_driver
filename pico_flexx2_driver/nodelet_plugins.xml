@@ -1,0 +1,5 @@
+<library path="lib/libpico_flexx2_nodelet">
+  <class name="pico_flexx2_driver/pico_flexx2_nodelet" type="PicoFlexxNodelet" base_class_type="nodelet::Nodelet">
+  <description>PicoFlexx2 nodelet</description>
+  </class>
+</library>
