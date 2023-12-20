@@ -96,7 +96,12 @@
 
 #endif
 
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+class PicoFlexx : public royale::IDepthDataListener, public royale::IExposureListener
+#else 
 class PicoFlexx : public royale::IDepthDataListener, public royale::IExposureListener2
+#endif
+
 {
 private:
   enum Topics
@@ -134,7 +139,11 @@ private:
 
 public:
   PicoFlexx(const ros::NodeHandle &nh = ros::NodeHandle(), const ros::NodeHandle &priv_nh = ros::NodeHandle("~"))
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    : royale::IDepthDataListener(), royale::IExposureListener(), nh(nh), priv_nh(priv_nh), server(lockServer, priv_nh)
+#else
     : royale::IDepthDataListener(), royale::IExposureListener2(), nh(nh), priv_nh(priv_nh), server(lockServer, priv_nh)
+#endif
   {
     cbExposureTime.resize(2);
     running = false;
@@ -194,6 +203,9 @@ public:
     lockTiming.unlock();
 
     lockData.lock();
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    this->data = std::make_unique<royale::DepthData>(royale::DepthData(*data));
+#else
     this->data = std::unique_ptr<royale::DepthData>(new royale::DepthData);
     this->data->version = data->version;
     this->data->timeStamp = data->timeStamp;
@@ -202,6 +214,7 @@ public:
     this->data->height = data->height;
     this->data->exposureTimes = data->exposureTimes;
     this->data->points = data->points;
+#endif
     newData = true;
     lockData.unlock();
     cvNewData.notify_one();
@@ -865,9 +878,15 @@ private:
   {
 #if (defined(royale_VERSION_MAJOR) && defined(royale_VERSION_MINOR) \
      && (royale_VERSION_MAJOR > 3 || (royale_VERSION_MAJOR == 3 && royale_VERSION_MINOR >= 21)))
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    const royale::FilterPreset desiredLevel = (royale::FilterPreset) level;
+    royale::FilterPreset currentLevel;
+    if (cameraDevice->getFilterPreset(currentLevel) != royale::CameraStatus::SUCCESS)
+#else
     const royale::FilterLevel desiredLevel = (royale::FilterLevel) level;
     royale::FilterLevel currentLevel;
     if (cameraDevice->getFilterLevel(currentLevel) != royale::CameraStatus::SUCCESS)
+#endif
     {
       OUT_ERROR("could not get filter level!");
       return false;
@@ -880,17 +899,29 @@ private:
       OUT_INFO("filter level unchanged");
       return false;
     }
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    if (desiredLevel == royale::FilterPreset::Custom)
+#else
     if (desiredLevel == royale::FilterLevel::Custom)
+#endif
     {
       OUT_INFO("filter level 'Custom' can only be read, not set");
       return false;
     }
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    if (currentLevel == royale::FilterPreset::Custom)
+#else
     if (currentLevel == royale::FilterLevel::Custom)
+#endif
     {
       OUT_INFO("current filter level is 'Custom', will not overwrite");
       return false;
     }
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    if (cameraDevice->setFilterPreset(desiredLevel, streamId) != royale::CameraStatus::SUCCESS)
+#else
     if (cameraDevice->setFilterLevel(desiredLevel, streamId) != royale::CameraStatus::SUCCESS)
+#endif
     {
       OUT_ERROR("could not set filter level!");
       return false;
@@ -1047,13 +1078,21 @@ private:
       return;
     }
 
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    royale::Vector<royale::DepthPoint> points = data.getLegacyPoints();
+#endif
+
     msgMono16->header = header;
     msgMono16->height = data.height;
     msgMono16->width = data.width;
     msgMono16->is_bigendian = false;
     msgMono16->encoding = sensor_msgs::image_encodings::MONO16;
     msgMono16->step = (uint32_t)(sizeof(uint16_t) * data.width);
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    msgMono16->data.resize(sizeof(uint16_t) * points.size());
+#else
     msgMono16->data.resize(sizeof(uint16_t) * data.points.size());
+#endif
 
     msgDepth->header = header;
     msgDepth->height = data.height;
@@ -1061,7 +1100,11 @@ private:
     msgDepth->is_bigendian = false;
     msgDepth->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
     msgDepth->step = (uint32_t)(sizeof(float) * data.width);
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    msgDepth->data.resize(sizeof(float) * points.size());
+#else
     msgDepth->data.resize(sizeof(float) * data.points.size());
+#endif
 
     msgNoise->header = header;
     msgNoise->height = data.height;
@@ -1069,7 +1112,11 @@ private:
     msgNoise->is_bigendian = false;
     msgNoise->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
     msgNoise->step = (uint32_t)(sizeof(float) * data.width);
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    msgNoise->data.resize(sizeof(float) * points.size());
+#else
     msgNoise->data.resize(sizeof(float) * data.points.size());
+#endif
 
     msgCloud->header = header;
     msgCloud->height = data.height;
@@ -1103,15 +1150,27 @@ private:
     msgCloud->fields[5].offset = msgCloud->fields[4].offset + (uint32_t)sizeof(uint16_t);
     msgCloud->fields[5].datatype = sensor_msgs::PointField::UINT8;
     msgCloud->fields[5].count = 1;
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    msgCloud->data.resize(msgCloud->point_step * points.size());
+#else
     msgCloud->data.resize(msgCloud->point_step * data.points.size());
+#endif
 
     const float invalid = std::numeric_limits<float>::quiet_NaN();
     const float maxNoise = (float)config.max_noise;
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    const royale::DepthPoint *itI = &points[0];
+#else
     const royale::DepthPoint *itI = &data.points[0];
+#endif
     float *itD = (float *)&msgDepth->data[0];
     float *itN = (float *)&msgNoise->data[0];
     uint16_t *itM = (uint16_t *)&msgMono16->data[0];
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    for(size_t i = 0; i < points.size(); ++i, ++itI, ++itD, ++itM, ++itN)
+#else
     for(size_t i = 0; i < data.points.size(); ++i, ++itI, ++itD, ++itM, ++itN)
+#endif
     {
       float *itCX = (float *)&msgCloud->data[i * msgCloud->point_step];
       float *itCY = itCX + 1;

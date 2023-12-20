@@ -7,8 +7,6 @@ find_package(royale 5 REQUIRED
   PATHS ${PROJECT_SOURCE_DIR}/libroyale-5.9.0.2568-LINUX-x86-64Bit/lib/cmake
 )
 
-add_definitions(-DSDK_MAJOR_VERSION=5)
-
 set(royale_sdk_include_dirs royale::royale)
 set(royale_sdk_libraries royale::royale)
 
@@ -27,6 +25,8 @@ find_package(catkin REQUIRED COMPONENTS
 # cxx_flags will be used with target_compile_options (cleaner than changing CMAKE_CXX_FLAGS) 
 string(REPLACE " " ";" cxx_flags "${CMAKE_CXX_FLAGS} ${additional_cxx_flags}")
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # debugging output
 MESSAGE( STATUS "CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
