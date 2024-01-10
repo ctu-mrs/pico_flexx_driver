@@ -276,6 +276,7 @@ public:
       {
         OUT_ERROR("could not start capture!");
         running = false;
+        cameraDevice->stopCapture();
         ros::shutdown();
       }
 
@@ -583,6 +584,7 @@ private:
     if(camlist.empty())
     {
       OUT_ERROR("no cameras connected!");
+      ros::shutdown();
       return false;
     }
 
