@@ -39,7 +39,12 @@
 #include <royale.hpp>
 
 #include <dynamic_reconfigure/server.h>
+
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+#include <pico_flexx_msgs/pico_flexx2_driverConfig.h>
+#else
 #include <pico_flexx_msgs/pico_flexx_driverConfig.h>
+#endif
 
 #define PF_DEFAULT_NS       "pico_flexx"
 #define PF_TF_OPT_FRAME     "_optical_frame"
@@ -120,8 +125,13 @@ private:
   std::vector<std::vector<ros::Publisher>> publisher;
   std::vector<std::vector<bool>> status;
   boost::recursive_mutex lockServer;
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+  dynamic_reconfigure::Server<pico_flexx_driver::pico_flexx2_driverConfig> server;
+  pico_flexx_driver::pico_flexx2_driverConfig configMin, configMax, config;
+#else
   dynamic_reconfigure::Server<pico_flexx_driver::pico_flexx_driverConfig> server;
   pico_flexx_driver::pico_flexx_driverConfig configMin, configMax, config;
+#endif
   std::vector<int> cbExposureTime;
 
   std::unique_ptr<royale::ICameraDevice> cameraDevice;
@@ -323,7 +333,11 @@ public:
     lockStatus.unlock();
   }
 
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+  void callbackConfig(pico_flexx_driver::pico_flexx2_driverConfig &config, uint32_t level)
+#else
   void callbackConfig(pico_flexx_driver::pico_flexx_driverConfig &config, uint32_t level)
+#endif
   {
     if(level == 0xFFFFFFFF)
     {
@@ -420,10 +434,17 @@ public:
 
     if(level & 0x20)
     {
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+      OUT_INFO("reconfigured min_confidence: " << FG_CYAN << config.min_confidence << NO_COLOR);
+      lockStatus.lock();
+      this->config.min_confidence = config.min_confidence;
+      lockStatus.unlock();
+#else
       OUT_INFO("reconfigured max_noise: " << FG_CYAN << config.max_noise << " meters" << NO_COLOR);
       lockStatus.lock();
       this->config.max_noise = config.max_noise;
       lockStatus.unlock();
+#endif
     }
 
     if(level & 0x40)
@@ -483,7 +504,12 @@ private:
     bool automaticExposure, automaticExposureStream2;
     int32_t useCase, exposureTime, exposureTimeStream2, queueSize;
     std::string sensor, baseName;
-    double maxNoise, rangeFactor;
+    double rangeFactor;
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    int minConfidence;
+#else
+    double maxNoise;
+#endif
 
     priv_nh.param("base_name", baseName, std::string(PF_DEFAULT_NS));
     priv_nh.param("sensor", sensor, std::string(""));
@@ -492,7 +518,11 @@ private:
     priv_nh.param("automatic_exposure", automaticExposureStream2, true);
     priv_nh.param("exposure_time", exposureTime, 1000);
     priv_nh.param("exposure_time_stream2", exposureTimeStream2, 1000);
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    priv_nh.param("min_confidence", minConfidence, 1);
+#else
     priv_nh.param("max_noise", maxNoise, 0.7);
+#endif
     priv_nh.param("range_factor", rangeFactor, 2.0);
     priv_nh.param("queue_size", queueSize, 2);
     priv_nh.param("base_name_tf", baseNameTF, baseName);
@@ -505,7 +535,11 @@ private:
              << "automatic_exposure_stream2: " FG_CYAN << (automaticExposureStream2 ? "true" : "false") << NO_COLOR << std::endl
              << "             exposure_time: " FG_CYAN << exposureTime << NO_COLOR << std::endl
              << "     exposure_time_stream2: " FG_CYAN << exposureTimeStream2 << NO_COLOR << std::endl
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+             << "                 min_confidence: " FG_CYAN << minConfidence << NO_COLOR << std::endl
+#else
              << "                 max_noise: " FG_CYAN << maxNoise << " meters" NO_COLOR << std::endl
+#endif
              << "              range_factor: " FG_CYAN << rangeFactor << NO_COLOR << std::endl
              << "                queue_size: " FG_CYAN << queueSize << NO_COLOR << std::endl
              << "              base_name_tf: " FG_CYAN << baseNameTF << NO_COLOR);
@@ -554,12 +588,20 @@ private:
     config.exposure_mode_stream2 = automaticExposureStream2 ? 1 : 0;
     config.exposure_time = std::max(std::min(exposureTime, configMax.exposure_time), configMin.exposure_time);
     config.exposure_time_stream2 = std::max(std::min(exposureTimeStream2, configMax.exposure_time_stream2), configMin.exposure_time_stream2);
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    config.min_confidence = std::max(std::min(minConfidence, configMax.min_confidence), configMin.min_confidence);
+#else
     config.max_noise = std::max(std::min(maxNoise, configMax.max_noise), configMin.max_noise);
+#endif
     config.range_factor = std::max(std::min(rangeFactor, configMax.range_factor), configMin.range_factor);
 
     server.setConfigDefault(config);
 
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    dynamic_reconfigure::Server<pico_flexx_driver::pico_flexx2_driverConfig>::CallbackType f;
+#else
     dynamic_reconfigure::Server<pico_flexx_driver::pico_flexx_driverConfig>::CallbackType f;
+#endif
     f = boost::bind(&PicoFlexx::callbackConfig, this, _1, _2);
     server.setCallback(f);
 
@@ -910,15 +952,15 @@ private:
       OUT_INFO("filter level 'Custom' can only be read, not set");
       return false;
     }
-#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
-    if (currentLevel == royale::FilterPreset::Custom)
-#else
-    if (currentLevel == royale::FilterLevel::Custom)
-#endif
-    {
-      OUT_INFO("current filter level is 'Custom', will not overwrite");
-      return false;
-    }
+/* #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5)) */
+/*     if (currentLevel == royale::FilterPreset::Custom) */
+/* #else */
+/*     if (currentLevel == royale::FilterLevel::Custom) */
+/* #endif */
+/*     { */
+/*       OUT_INFO("current filter level is 'Custom', will not overwrite"); */
+/*       return false; */
+/*     } */
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
     if (cameraDevice->setFilterPreset(desiredLevel, streamId) != royale::CameraStatus::SUCCESS)
 #else
@@ -1112,11 +1154,13 @@ private:
     msgNoise->height = data.height;
     msgNoise->width = data.width;
     msgNoise->is_bigendian = false;
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    msgNoise->encoding = sensor_msgs::image_encodings::MONO8;
+    msgNoise->step = (uint32_t)(sizeof(uint8_t) * data.width);
+    msgNoise->data.resize(sizeof(uint8_t) * points.size());
+#else
     msgNoise->encoding = sensor_msgs::image_encodings::TYPE_32FC1;
     msgNoise->step = (uint32_t)(sizeof(float) * data.width);
-#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
-    msgNoise->data.resize(sizeof(float) * points.size());
-#else
     msgNoise->data.resize(sizeof(float) * data.points.size());
 #endif
 
@@ -1159,14 +1203,16 @@ private:
 #endif
 
     const float invalid = std::numeric_limits<float>::quiet_NaN();
-    const float maxNoise = (float)config.max_noise;
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+    const uint8_t minConfidence = (uint8_t)config.min_confidence;
     const royale::DepthPoint *itI = &points[0];
+    uint8_t *itN = (uint8_t *)&msgNoise->data[0];
 #else
+    const float maxNoise = (float)config.max_noise;
     const royale::DepthPoint *itI = &data.points[0];
+    float *itN = (float *)&msgNoise->data[0];
 #endif
     float *itD = (float *)&msgDepth->data[0];
-    float *itN = (float *)&msgNoise->data[0];
     uint16_t *itM = (uint16_t *)&msgMono16->data[0];
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
     for(size_t i = 0; i < points.size(); ++i, ++itI, ++itD, ++itM, ++itN)
@@ -1177,26 +1223,35 @@ private:
       float *itCX = (float *)&msgCloud->data[i * msgCloud->point_step];
       float *itCY = itCX + 1;
       float *itCZ = itCY + 1;
-      float *itCN = itCZ + 1;                    // "noise" field
+      float *itCN = itCZ + 1;                    // "confidence" field
       uint16_t *itCM = (uint16_t *)(itCN + 1);   // "intensity" field
 
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+      if(itI->depthConfidence && itI->depthConfidence >= minConfidence)
+#else
       if(itI->depthConfidence && itI->noise < maxNoise)
+#endif
       {
         *itCX = itI->x;
         *itCY = itI->y;
         *itCZ = itI->z;
-        *itCN = itI->noise;
         *itD = itI->z;
+#if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
+        *itCN = itI->depthConfidence;
+        *itN = itI->depthConfidence;
+#else
+        *itCN = itI->noise;
         *itN = itI->noise;
+#endif
       }
       else
       {
         *itCX = invalid;
         *itCY = invalid;
         *itCZ = invalid;
-        *itCN = 0.0f;
         *itD = 0.0f;
-        *itN = 0.0f;
+        *itCN = 0;
+        *itN = 0;
       }
       *itCM = itI->grayValue;
       *itM = itI->grayValue;

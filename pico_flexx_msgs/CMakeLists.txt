@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 generate_dynamic_reconfigure_options(
   cfg/pico_flexx_driver.cfg
+  cfg/pico_flexx2_driver.cfg
 )
 
 catkin_package(

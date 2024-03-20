@@ -4,7 +4,7 @@
   <!-- ID of the sensor that should be used. IDs of all connected devices are listed on startup. -->
   <arg name="sensor"             default=""/>
   <!-- ID of the use case. A list of supported use cases is listed on startup. -->
-  <arg name="use_case"           default="0"/>
+  <arg name="use_case"           default="2"/>
   <!-- Enable or disable automatic expusure. -->
   <arg name="automatic_exposure" default="true"/>
   <!-- Exposure time. Only for manual exposure. -->
@@ -18,7 +18,7 @@
   <!-- Maximum allowed noise. Data with higher noise will be filtered out. -->
   <arg name="max_noise"          default="0.07"/>
   <!-- Filter level (0 = Off, 200 = Legacy, 255 = Full) -->
-  <arg name="filter_level"       default="200"/>
+  <arg name="filter_level"       default="9"/>
   <!-- Range of the 16-Bit mono image which should be mapped to the 0-255 range of the 8-Bit mono image. The resulting range is `range_factor` times the standard deviation arround mean. -->
   <arg name="range_factor"       default="2.0"/>
   <!-- Queue size for publisher. -->
