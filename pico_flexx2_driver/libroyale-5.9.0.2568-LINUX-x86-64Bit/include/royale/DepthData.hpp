@@ -139,7 +139,7 @@ struct DepthData {
             point.x = this->coordinates[idx * 4 + 0];
             point.y = this->coordinates[idx * 4 + 1];
             point.z = this->coordinates[idx * 4 + 2];
-            point.depthConfidence = this->coordinates[idx * 4 + 3] < 1.0f ? static_cast<uint8_t>(this->coordinates[idx * 4 + 3] * 255.0f) : 255;
+            point.depthConfidence = this->coordinates[idx * 4 + 3] < 1.0f ? round(this->coordinates[idx * 4 + 3] * 255.0f) : 255;
         } else {
             point.x = 0.0f;
             point.y = 0.0f;
@@ -196,6 +196,11 @@ struct DepthData {
 
     bool getIsCopy() const {
         return isCopy;
+    }
+
+    uint8_t round(float f) const {
+        double x = 6755399441055744.0;  // 2^51 + 2^52
+        return static_cast<uint8_t>(static_cast<double>(f) + x - x);
     }
 
   private:
