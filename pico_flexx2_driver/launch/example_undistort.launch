@@ -1,0 +1,12 @@
+<launch>
+  <!-- Name of the node. All topics will be advertised under this name. -->
+  <arg name="base_name"          default="pico_flexx2"/>
+
+  <!-- pico_flexx_driver nodelet. -->
+  <node pkg="nodelet" type="nodelet" name="$(arg base_name)_undistort"
+        args="standalone image_proc/rectify" output="screen">
+  <remap from="image_mono"  to="/$(arg base_name)/image_depth" />
+      <remap from="image_rect"  to="/$(arg base_name)/image_depth_rect" />
+      <param name="interpolation" value="0" />
+  </node>
+</launch>
