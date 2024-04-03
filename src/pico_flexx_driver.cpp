@@ -639,7 +639,7 @@ private:
     if(camlist.empty())
     {
       OUT_ERROR("no cameras connected!");
-      ros::shutdown();
+      ros::shutdown(); // node freezes otherwise - shutting it down allows respawn
       return false;
     }
 
@@ -667,12 +667,14 @@ private:
     if(index < 0)
     {
       OUT_ERROR("camera with id '" << _id << "' not found!");
+      ros::shutdown(); // node freezes otherwise - shutting it down allows respawn
       return false;
     }
     cameraDevice = manager.createCamera(camlist[index]);
 
     if(cameraDevice == nullptr)
     {
+      ros::shutdown(); // node freezes otherwise - shutting it down allows respawn
       OUT_ERROR("cannot create camera device!");
       return false;
     }
@@ -680,6 +682,7 @@ private:
     if(cameraDevice->initialize() != royale::CameraStatus::SUCCESS)
     {
       OUT_ERROR("cannot initialize camera device");
+      ros::shutdown(); // node freezes otherwise - shutting it down allows respawn
       return false;
     }
     return true;
