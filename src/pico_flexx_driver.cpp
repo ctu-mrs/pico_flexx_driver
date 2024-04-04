@@ -339,6 +339,11 @@ public:
   void callbackConfig(pico_flexx_driver::pico_flexx_driverConfig &config, uint32_t level)
 #endif
   {
+    if (!running) 
+    {
+      return;
+    }
+
     if(level == 0xFFFFFFFF)
     {
       return;
@@ -513,7 +518,7 @@ private:
 
     priv_nh.param("base_name", baseName, std::string(PF_DEFAULT_NS));
     priv_nh.param("sensor", sensor, std::string(""));
-    priv_nh.param("use_case", useCase, 0);
+    priv_nh.param("use_case", useCase, 2);
     priv_nh.param("automatic_exposure", automaticExposure, true);
     priv_nh.param("automatic_exposure", automaticExposureStream2, true);
     priv_nh.param("exposure_time", exposureTime, 1000);
@@ -1416,6 +1421,9 @@ public:
 
   virtual void onInit()
   {
+
+    ros::Time::waitForValid();
+
     picoFlexx = new PicoFlexx(getNodeHandle(), getPrivateNodeHandle());
     picoFlexx->start();
   }
