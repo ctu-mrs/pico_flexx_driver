@@ -205,8 +205,9 @@ public:
 
 /*//{ start() */
   void start() {
-    if (!initialize()) {
-      return;
+    while (!initialize()) {
+      OUT_INFO("camera initialization failed, will retry in 5 seconds");
+      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
     running = true;
 
@@ -311,8 +312,8 @@ public:
       if (cameraDevice->startCapture() != royale::CameraStatus::SUCCESS) {
         OUT_ERROR("could not start capture!");
         running = false;
-        cameraDevice->stopCapture();
-        ros::shutdown();
+        stop();
+        start();
       }
 
       royale::Vector<royale::StreamId> streams;
@@ -330,7 +331,8 @@ public:
       if (cameraDevice->stopCapture() != royale::CameraStatus::SUCCESS) {
         OUT_ERROR("could not stop capture!");
         running = false;
-        ros::shutdown();
+        stop();
+        start();
       }
     }
     lockStatus.unlock();
@@ -626,7 +628,6 @@ private:
     royale::Vector<royale::String> camlist = manager.getConnectedCameraList();
     if (camlist.empty()) {
       OUT_ERROR("no cameras connected!");
-      ros::shutdown();  // node freezes otherwise - shutting it down allows respawn
       return false;
     }
 
@@ -648,20 +649,17 @@ private:
 
     if (index < 0) {
       OUT_ERROR("camera with id '" << _id << "' not found!");
-      ros::shutdown();  // node freezes otherwise - shutting it down allows respawn
       return false;
     }
     cameraDevice = manager.createCamera(camlist[index]);
 
     if (cameraDevice == nullptr) {
-      ros::shutdown();  // node freezes otherwise - shutting it down allows respawn
       OUT_ERROR("cannot create camera device!");
       return false;
     }
 
     if (cameraDevice->initialize() != royale::CameraStatus::SUCCESS) {
       OUT_ERROR("cannot initialize camera device");
-      ros::shutdown();  // node freezes otherwise - shutting it down allows respawn
       return false;
     }
     return true;
