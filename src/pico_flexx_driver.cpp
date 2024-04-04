@@ -18,6 +18,7 @@
  * along with pico_flexx_driver.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*//{ includes */
 #include <iostream>
 #include <string>
 #include <vector>
@@ -45,7 +46,9 @@
 #else
 #include <pico_flexx_msgs/pico_flexx_driverConfig.h>
 #endif
+/*//}*/
 
+/*//{ defines */
 #define PF_DEFAULT_NS "pico_flexx"
 #define PF_TF_OPT_FRAME "_optical_frame"
 #define PF_TOPIC_INFO "/camera_info"
@@ -101,7 +104,9 @@
 #define OUT_ERROR(msg) ROS_WARN_STREAM(msg)
 
 #endif
+/*//}*/
 
+/*//{ class PicoFlexx */
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
 class PicoFlexx : public royale::IDepthDataListener,
                   public royale::IExposureListener
@@ -151,6 +156,8 @@ private:
   std::thread                                    threadProcess;
 
 public:
+
+/*//{ constructor */
   PicoFlexx(const ros::NodeHandle &nh = ros::NodeHandle(), const ros::NodeHandle &priv_nh = ros::NodeHandle("~"))
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
       : royale::IDepthDataListener(),
@@ -189,10 +196,14 @@ public:
 
     server.getConfigMax(configMax);
   }
+/*//}*/
 
+/*//{ destructor */
   ~PicoFlexx() {
   }
+/*//}*/
 
+/*//{ start() */
   void start() {
     if (!initialize()) {
       return;
@@ -203,14 +214,18 @@ public:
 
     OUT_INFO("waiting for clients to connect");
   }
+/*//}*/
 
+/*//{ stop() */
   void stop() {
     cameraDevice->stopCapture();
     running = false;
 
     threadProcess.join();
   }
+/*//}*/
 
+/*//{ onNewData() */
   void onNewData(const royale::DepthData *data) {
     std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
 
@@ -235,7 +250,9 @@ public:
     lockData.unlock();
     cvNewData.notify_one();
   }
+/*//}*/
 
+/*//{ onNewExposure() */
   void onNewExposure(const uint32_t newExposureTime, const royale::StreamId streamId) {
     size_t streamIndex;
     if (!findStreamIndex(streamId, streamIndex)) {
@@ -265,7 +282,9 @@ public:
     }
     server.updateConfig(config);
   }
+/*//}*/
 
+/*//{ callbackTopicStatus() */
   void callbackTopicStatus() {
     lockStatus.lock();
     bool clientsConnected = false;
@@ -316,7 +335,9 @@ public:
     }
     lockStatus.unlock();
   }
+/*//}*/
 
+/*//{ callbackConfig() */
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
   void callbackConfig(pico_flexx_driver::pico_flexx2_driverConfig &config, uint32_t level)
 #else
@@ -460,9 +481,13 @@ public:
       server.setConfigMax(configMax);
     }
   }
+/*//}*/
 
 private:
+
+/*//{ initialize() */
   bool initialize() {
+
     if (running) {
       OUT_ERROR("driver is already running!");
       return false;
@@ -568,7 +593,9 @@ private:
 
     return true;
   }
+/*//}*/
 
+/*//{ setTopics() */
   void setTopics(const std::string &baseName, const int32_t queueSize) {
     publisher.resize(2);
     ros::SubscriberStatusCallback cb = boost::bind(&PicoFlexx::callbackTopicStatus, this);
@@ -589,7 +616,9 @@ private:
     publisher[1][NOISE]       = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_NOISE, queueSize, cb, cb);
     publisher[1][CLOUD]       = nh.advertise<sensor_msgs::PointCloud2>(baseName + "/stream2" + PF_TOPIC_CLOUD, queueSize, cb, cb);
   }
+/*//}*/
 
+/*//{ selectCamera() */
   bool selectCamera(const std::string &id) {
     royale::String        _id = id;
     royale::CameraManager manager;
@@ -637,7 +666,9 @@ private:
     }
     return true;
   }
+/*//}*/
 
+/*//{ getCameraSettings() */
   bool getCameraSettings(royale::LensParameters &params) {
     bool                           ret = true;
     royale::Vector<royale::String> useCases;
@@ -706,7 +737,9 @@ private:
     }
     return ret;
   }
+/*//}*/
 
+/*//{ setUseCase() */
   bool setUseCase(const size_t idx) {
     royale::Vector<royale::String> useCases;
     cameraDevice->getUseCases(useCases);
@@ -787,7 +820,9 @@ private:
     lockTiming.unlock();
     return true;
   }
+/*//}*/
 
+/*//{ setExposureModeAllStreams() */
   bool setExposureModeAllStreams(const bool automatic, const bool automaticStream2) {
     bool                             success = true;
     royale::Vector<royale::StreamId> streams;
@@ -798,7 +833,9 @@ private:
       success &= setExposureMode(automaticStream2, streams[1]);
     return success;
   }
+/*//}*/
 
+/*//{ setExposureMode() */
   bool setExposureMode(const bool automatic, const royale::StreamId streamId = 0) {
     royale::ExposureMode newMode = automatic ? royale::ExposureMode::AUTOMATIC : royale::ExposureMode::MANUAL;
 
@@ -817,7 +854,9 @@ private:
     OUT_INFO("exposure mode changed to: " FG_YELLOW << (automatic ? "automatic" : "manual"));
     return true;
   }
+/*//}*/
 
+/*//{ setExposure() */
   bool setExposure(const uint32_t exposure, const royale::StreamId streamId = 0) {
     royale::Pair<uint32_t, uint32_t> limits;
     cameraDevice->getExposureLimits(limits, streamId);
@@ -835,7 +874,9 @@ private:
     OUT_INFO("exposure time changed to: " FG_YELLOW << exposure);
     return true;
   }
+/*//}*/
 
+/*//{ setFilterLevel() */
   bool setFilterLevel(const int level, const royale::StreamId streamId = 0) {
 #if (defined(royale_VERSION_MAJOR) && defined(royale_VERSION_MINOR) && (royale_VERSION_MAJOR > 3 || (royale_VERSION_MAJOR == 3 && royale_VERSION_MINOR >= 21)))
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
@@ -867,6 +908,7 @@ private:
       OUT_INFO("filter level 'Custom' can only be read, not set");
       return false;
     }
+
 /* #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5)) */
 /*     if (currentLevel == royale::FilterPreset::Custom) */
 /* #else */
@@ -892,7 +934,9 @@ private:
     return false;
 #endif
   }
+/*//}*/
 
+/*//{ createCameraInfo() */
   bool createCameraInfo(const royale::LensParameters &params) {
     if (params.distortionRadial.size() != 3) {
       OUT_ERROR("distortion model unknown!" << params.distortionRadial.size());
@@ -950,7 +994,9 @@ private:
 
     return true;
   }
+/*//}*/
 
+/*//{ process() */
   void process() {
     std::unique_ptr<royale::DepthData> data;
     sensor_msgs::CameraInfoPtr         msgCameraInfo;
@@ -994,7 +1040,9 @@ private:
       lock.lock();
     }
   }
+/*//}*/
 
+/*//{ findStreamIndex() */
   bool findStreamIndex(const royale::StreamId streamId, size_t &streamIndex) {
     royale::Vector<royale::StreamId> streams;
     cameraDevice->getStreams(streams);
@@ -1006,7 +1054,9 @@ private:
     streamIndex = std::distance(streams.begin(), it);
     return true;
   }
+/*//}*/
 
+/*//{ extractData() */
   void extractData(const royale::DepthData &data, sensor_msgs::CameraInfoPtr &msgCameraInfo, sensor_msgs::PointCloud2Ptr &msgCloud,
                    sensor_msgs::ImagePtr &msgMono8, sensor_msgs::ImagePtr &msgMono16, sensor_msgs::ImagePtr &msgDepth, sensor_msgs::ImagePtr &msgNoise,
                    size_t streamIndex = 0) const {
@@ -1162,7 +1212,9 @@ private:
 
     computeMono8(msgMono16, msgMono8, msgCloud);
   }
+/*//}*/
 
+/*//{ computeMono8() */
   void computeMono8(const sensor_msgs::ImageConstPtr &msgMono16, sensor_msgs::ImagePtr &msgMono8, sensor_msgs::PointCloud2Ptr &msgCloud) const {
     msgMono8->header       = msgMono16->header;
     msgMono8->height       = msgMono16->height;
@@ -1220,7 +1272,9 @@ private:
       *itP               = newV;
     }
   }
+/*//}*/
 
+/*//{ publish() */
   void publish(sensor_msgs::CameraInfoPtr &msgCameraInfo, sensor_msgs::PointCloud2Ptr &msgCloud, sensor_msgs::ImagePtr &msgMono8,
                sensor_msgs::ImagePtr &msgMono16, sensor_msgs::ImagePtr &msgDepth, sensor_msgs::ImagePtr &msgNoise, size_t streamIndex = 0) const {
     if (status[streamIndex][CAMERA_INFO]) {
@@ -1248,7 +1302,9 @@ private:
       msgCloud = sensor_msgs::PointCloud2Ptr(new sensor_msgs::PointCloud2);
     }
   }
+/*//}*/
 
+/*//{ timings() */
   void timings() {
     std::chrono::high_resolution_clock::time_point now = std::chrono::high_resolution_clock::now();
 
@@ -1270,7 +1326,10 @@ private:
     ++frame;
   }
 };
+/*//}*/
+/*//}*/
 
+/*//{ class PicoFlexxNodelet */
 class PicoFlexxNodelet : public nodelet::Nodelet {
 private:
   PicoFlexx *picoFlexx;
@@ -1294,10 +1353,12 @@ public:
     picoFlexx->start();
   }
 };
+/*//}*/
 
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(PicoFlexxNodelet, nodelet::Nodelet)
 
+/*//{ main() */
 int main(int argc, char **argv) {
 #if EXTENDED_OUTPUT
   ROSCONSOLE_AUTOINIT;
@@ -1315,3 +1376,4 @@ int main(int argc, char **argv) {
   picoFlexx.stop();
   return 0;
 }
+/*//}*/
