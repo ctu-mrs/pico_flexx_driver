@@ -1332,16 +1332,13 @@ private:
 /*//{ class PicoFlexxNodelet */
 class PicoFlexxNodelet : public nodelet::Nodelet {
 private:
-  PicoFlexx *picoFlexx;
+  std::unique_ptr<PicoFlexx> picoFlexx;
 
 public:
-  PicoFlexxNodelet() : Nodelet(), picoFlexx(NULL) {
-  }
 
   ~PicoFlexxNodelet() {
     if (picoFlexx) {
       picoFlexx->stop();
-      delete picoFlexx;
     }
   }
 
@@ -1349,7 +1346,7 @@ public:
 
     ros::Time::waitForValid();
 
-    picoFlexx = new PicoFlexx(getNodeHandle(), getPrivateNodeHandle());
+    picoFlexx = std::make_unique<PicoFlexx>(getNodeHandle(), getPrivateNodeHandle());
     picoFlexx->start();
   }
 };
