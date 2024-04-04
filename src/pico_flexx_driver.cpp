@@ -154,6 +154,7 @@ private:
   std::string                                    baseNameTF;
   std::chrono::high_resolution_clock::time_point startTime;
   std::thread                                    threadProcess;
+  std::thread                                    threadStart;
 
 public:
 
@@ -203,6 +204,12 @@ public:
   }
 /*//}*/
 
+/*//{ startInit() */
+  void startInit() {
+    threadStart = std::thread(&PicoFlexx::start, this);
+  }
+/*//}*/
+  
 /*//{ start() */
   void start() {
     while (!initialize()) {
@@ -1345,7 +1352,7 @@ public:
     ros::Time::waitForValid();
 
     picoFlexx = std::make_unique<PicoFlexx>(getNodeHandle(), getPrivateNodeHandle());
-    picoFlexx->start();
+    picoFlexx->startInit();
   }
 };
 /*//}*/
