@@ -334,14 +334,6 @@ public:
       if (config.exposure_mode_stream2 == 0 && streams.size() >= 2 && cbExposureTime[1] != config.exposure_time_stream2) {
         setExposure((uint32_t)config.exposure_time_stream2, streams[1]);
       }
-    } else if (!clientsConnected && isCapturing) {
-      OUT_INFO("no clients connected. stopping device...");
-      if (cameraDevice->stopCapture() != royale::CameraStatus::SUCCESS) {
-        OUT_ERROR("could not stop capture!");
-        running = false;
-        stop();
-        start();
-      }
     }
     lockStatus.unlock();
   }
