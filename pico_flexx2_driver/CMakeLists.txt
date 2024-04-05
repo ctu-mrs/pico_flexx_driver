@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.5.2)
 project(pico_flexx2_driver)
 
 find_package(royale 5 REQUIRED
-  PATHS ${PROJECT_SOURCE_DIR}/libroyale-5.9.0.2568-LINUX-x86-64Bit/lib/cmake
+  # PATHS ${PROJECT_SOURCE_DIR}/libroyale-5.9.0.2568-LINUX-x86-64Bit/lib/cmake
+  PATHS ${PROJECT_SOURCE_DIR}/libroyale-5.10.0.2751-LINUX-x86-64Bit/lib/cmake
 )
 
 set(royale_sdk_include_dirs royale::royale)
