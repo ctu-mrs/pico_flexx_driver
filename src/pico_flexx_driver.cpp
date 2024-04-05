@@ -214,7 +214,7 @@ public:
 /*//{ start() */
   void start() {
     while (!initialize()) {
-      OUT_INFO("camera initialization failed, will retry in 5 seconds");
+      OUT_INFO(baseName.c_str() << " - camera initialization failed, will retry in 5 seconds");
       std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
     running = true;
@@ -290,52 +290,6 @@ public:
       config.exposure_time_stream2 = (int)newExposureTime;
     }
     server.updateConfig(config);
-  }
-/*//}*/
-
-/*//{ callbackTopicStatus() */
-  void callbackTopicStatus() {
-    lockStatus.lock();
-    bool clientsConnected = false;
-    for (size_t i = 0; i < 2; ++i) {
-      for (size_t j = 0; j < COUNT; ++j) {
-        status[i][j]     = publisher[i][j].getNumSubscribers() > 0;
-        clientsConnected = clientsConnected || status[i][j];
-      }
-    }
-
-    bool isCapturing(false);
-    cameraDevice->isCapturing(isCapturing);
-    if (clientsConnected && !isCapturing) {
-      OUT_INFO("client connected. starting device...");
-
-      lockTiming.lock();
-      processTime   = 0;
-      frame         = 0;
-      delayReceived = 0;
-      lockTiming.unlock();
-      ignoreNewExposure[0] = config.exposure_mode == 0;  // ignore if manual mode
-      ignoreNewExposure[1] = config.exposure_mode_stream2 == 0;
-
-      if (cameraDevice->startCapture() != royale::CameraStatus::SUCCESS) {
-        OUT_ERROR("could not start capture!");
-        running = false;
-        stop();
-        start();
-      }
-
-      royale::Vector<royale::StreamId> streams;
-      cameraDevice->getStreams(streams);
-
-      if (config.exposure_mode == 0 && streams.size() >= 1 && cbExposureTime[0] != config.exposure_time) {
-        setExposure((uint32_t)config.exposure_time, streams[0]);
-      }
-
-      if (config.exposure_mode_stream2 == 0 && streams.size() >= 2 && cbExposureTime[1] != config.exposure_time_stream2) {
-        setExposure((uint32_t)config.exposure_time_stream2, streams[1]);
-      }
-    }
-    lockStatus.unlock();
   }
 /*//}*/
 
@@ -561,6 +515,38 @@ private:
 
     setTopics(baseName, queueSize);
 
+    bool isCapturing(false);
+    cameraDevice->isCapturing(isCapturing);
+    if (!isCapturing) {
+      OUT_INFO(baseName.c_str() << " - starting capturing");
+
+      lockTiming.lock();
+      processTime   = 0;
+      frame         = 0;
+      delayReceived = 0;
+      lockTiming.unlock();
+      ignoreNewExposure[0] = config.exposure_mode == 0;  // ignore if manual mode
+      ignoreNewExposure[1] = config.exposure_mode_stream2 == 0;
+
+      if (cameraDevice->startCapture() != royale::CameraStatus::SUCCESS) {
+        OUT_ERROR("could not start capture!");
+        running = false;
+        stop();
+        start();
+      }
+
+      royale::Vector<royale::StreamId> streams;
+      cameraDevice->getStreams(streams);
+
+      if (config.exposure_mode == 0 && streams.size() >= 1 && cbExposureTime[0] != config.exposure_time) {
+        setExposure((uint32_t)config.exposure_time, streams[0]);
+      }
+
+      if (config.exposure_mode_stream2 == 0 && streams.size() >= 2 && cbExposureTime[1] != config.exposure_time_stream2) {
+        setExposure((uint32_t)config.exposure_time_stream2, streams[1]);
+      }
+    }
+
     royale::Pair<uint32_t, uint32_t> limits;
     cameraDevice->getExposureLimits(limits);
     configMin.exposure_time = limits.first;
@@ -600,23 +586,22 @@ private:
 /*//{ setTopics() */
   void setTopics(const std::string &baseName, const int32_t queueSize) {
     publisher.resize(2);
-    ros::SubscriberStatusCallback cb = boost::bind(&PicoFlexx::callbackTopicStatus, this);
 
     publisher[0].resize(COUNT);
-    publisher[0][CAMERA_INFO] = nh.advertise<sensor_msgs::CameraInfo>(baseName + PF_TOPIC_INFO, queueSize, cb, cb);
-    publisher[0][MONO_8]      = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_MONO8, queueSize, cb, cb);
-    publisher[0][MONO_16]     = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_MONO16, queueSize, cb, cb);
-    publisher[0][DEPTH]       = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_DEPTH, queueSize, cb, cb);
-    publisher[0][NOISE]       = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_NOISE, queueSize, cb, cb);
-    publisher[0][CLOUD]       = nh.advertise<sensor_msgs::PointCloud2>(baseName + PF_TOPIC_CLOUD, queueSize, cb, cb);
+    publisher[0][CAMERA_INFO] = nh.advertise<sensor_msgs::CameraInfo>(baseName + PF_TOPIC_INFO, queueSize);
+    publisher[0][MONO_8]      = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_MONO8, queueSize);
+    publisher[0][MONO_16]     = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_MONO16, queueSize);
+    publisher[0][DEPTH]       = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_DEPTH, queueSize);
+    publisher[0][NOISE]       = nh.advertise<sensor_msgs::Image>(baseName + PF_TOPIC_NOISE, queueSize);
+    publisher[0][CLOUD]       = nh.advertise<sensor_msgs::PointCloud2>(baseName + PF_TOPIC_CLOUD, queueSize);
 
     publisher[1].resize(COUNT);
-    publisher[1][CAMERA_INFO] = nh.advertise<sensor_msgs::CameraInfo>(baseName + "/stream2" + PF_TOPIC_INFO, queueSize, cb, cb);
-    publisher[1][MONO_8]      = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_MONO8, queueSize, cb, cb);
-    publisher[1][MONO_16]     = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_MONO16, queueSize, cb, cb);
-    publisher[1][DEPTH]       = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_DEPTH, queueSize, cb, cb);
-    publisher[1][NOISE]       = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_NOISE, queueSize, cb, cb);
-    publisher[1][CLOUD]       = nh.advertise<sensor_msgs::PointCloud2>(baseName + "/stream2" + PF_TOPIC_CLOUD, queueSize, cb, cb);
+    publisher[1][CAMERA_INFO] = nh.advertise<sensor_msgs::CameraInfo>(baseName + "/stream2" + PF_TOPIC_INFO, queueSize);
+    publisher[1][MONO_8]      = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_MONO8, queueSize);
+    publisher[1][MONO_16]     = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_MONO16, queueSize);
+    publisher[1][DEPTH]       = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_DEPTH, queueSize);
+    publisher[1][NOISE]       = nh.advertise<sensor_msgs::Image>(baseName + "/stream2" + PF_TOPIC_NOISE, queueSize);
+    publisher[1][CLOUD]       = nh.advertise<sensor_msgs::PointCloud2>(baseName + "/stream2" + PF_TOPIC_CLOUD, queueSize);
   }
 /*//}*/
 
