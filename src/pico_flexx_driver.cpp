@@ -151,6 +151,7 @@ private:
   std::vector<bool>                              ignoreNewExposure;
   uint64_t                                       frame, processTime, delayReceived;
   int                                            framesPerTiming;
+  std::string                                    baseName;
   std::string                                    baseNameTF;
   std::chrono::high_resolution_clock::time_point startTime;
   std::thread                                    threadProcess;
@@ -220,7 +221,7 @@ public:
 
     threadProcess = std::thread(&PicoFlexx::process, this);
 
-    OUT_INFO("waiting for clients to connect");
+    OUT_INFO(baseName.c_str() << " - waiting for clients to connect");
   }
 /*//}*/
 
@@ -504,7 +505,7 @@ private:
 
     bool        automaticExposure, automaticExposureStream2;
     int32_t     useCase, exposureTime, exposureTimeStream2, queueSize;
-    std::string sensor, baseName;
+    std::string sensor;
     double      rangeFactor;
 #if (defined(royale_VERSION_MAJOR) && (royale_VERSION_MAJOR == 5))
     int minConfidence;
@@ -1325,7 +1326,7 @@ private:
       processTime   = 0;
       startTime     = now;
       delayReceived = 0;
-      OUT_INFO("processing: " FG_YELLOW "~" << std::setprecision(4) << timePerFrame << " ms." NO_COLOR " fps: " FG_YELLOW "~" << framesPerSecond
+      OUT_INFO(baseName.c_str() << " - processing: " << FG_YELLOW "~" << std::setprecision(4) << timePerFrame << " ms." NO_COLOR " fps: " FG_YELLOW "~" << framesPerSecond
                                             << " Hz" NO_COLOR " delay: " FG_YELLOW "~" << avgDelay << " ms." NO_COLOR);
     }
     ++frame;
